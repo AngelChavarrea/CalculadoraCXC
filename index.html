@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Salida Anticipada</title>
+  <style>
+    /* Estilos generales */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Contenedor del formulario */
+    .calculator-container {
+      background-color: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    /* Título */
+    .calculator-container h2 {
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    /* Campos de entrada */
+    .calculator-container input,
+    .calculator-container select,
+    .calculator-container button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+
+    .calculator-container input:focus,
+    .calculator-container select:focus,
+    .calculator-container button:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
+    /* Campos de solo lectura */
+    .calculator-container input[readonly] {
+      background-color: #f9f9f9;
+      cursor: not-allowed;
+    }
+
+    /* Checkboxes */
+    .checkbox-group {
+      text-align: left;
+      margin: 15px 0;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      margin-right: 10px;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Botón de cálculo */
+    .calculator-container button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    .calculator-container button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Resultado */
+    .result {
+      margin-top: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      text-align: left;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      display: none; /* Oculto por defecto */
+    }
+
+    /* Campo adicional para TV */
+    .tv-field {
+      display: none; /* Oculto por defecto */
+    }
+
+    /* Responsive para pantallas pequeñas */
+    @media (max-width: 480px) {
+      .calculator-container {
+        padding: 15px;
+      }
+
+      .calculator-container h2 {
+        font-size: 20px;
+      }
+
+      .calculator-container input,
+      .calculator-container select,
+      .calculator-container button {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .result {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator-container">
+    <h2>Calculadora de Salida Anticipada</h2>
+    <form id="calculator-form">
+      <label for="start-date">Fecha de contratación:</label>
+      <input type="date" id="start-date" required>
+
+      <label for="end-date">Fecha de suspensión:</label>
+      <input type="date" id="end-date" required>
+
+      <div class="checkbox-group">
+        <label><input type="checkbox" id="internet" value="internet"> Internet</label>
+        <label><input type="checkbox" id="telefonia" value="telefonia"> Telefonía</label>
+        <label><input type="checkbox" id="television" value="television"> Televisión</label>
+      </div>
+
+      <div id="cxc-main-field">
+        <label id="cxc-label" for="cxc-value">Valor total de CXC sin Imp:</label>
+        <input type="number" id="cxc-value" required>
+      </div>
+
+      <!-- Campo adicional para TV -->
+      <div class="tv-field" id="tv-field">
+        <label for="cxc-tv">Valor total de CXC sin Imp TV:</label>
+        <input type="number" id="cxc-tv">
+      </div>
+
+      <label for="months-diff">Meses transcurridos:</label>
+      <input type="text" id="months-diff" readonly>
+
+      <label for="contract-duration">Duración del contrato (meses):</label>
+      <input type="number" id="contract-duration" required>
+
+      <label for="remaining-months">Meses faltantes:</label>
+      <input type="text" id="remaining-months" readonly>
+
+      <button type="button" onclick="calculate()">Calcular</button>
+    </form>
+    <div class="result" id="result"></div>
+    <div class="result" id="result-with-tax"></div>
+    <div class="result" id="result-tv"></div>
+    <div class="result" id="result-with-ice"></div>
+  </div>
+
+  <script>
+    // Función para actualizar el texto del campo CXC
+    function updateCxcLabel() {
+      const internet = document.getElementById('internet').checked;
+      const telefonia = document.getElementById('telefonia').checked;
+      const television = document.getElementById('television').checked;
+
+      let services = [];
+      if (internet && !television) services.push("Int");
+      if (telefonia && !television) services.push("Telf");
+      if (television && internet && telefonia) services.push("Int", "Telf");
+      if (television && internet && !telefonia) services.push("Int");
+      if (television && !internet && telefonia) services.push("Telf");
+
+      const cxcLabel = document.getElementById('cxc-label');
+      if (services.length > 0) {
+        cxcLabel.textContent = `Valor total de CXC sin Imp (${services.join(", ")}):`;
+      } else {
+        cxcLabel.textContent = "Valor total de CXC sin Imp:";
+      }
+
+      // Mostrar u ocultar el campo adicional para TV
+      const tvField = document.getElementById('tv-field');
+      const cxcMainField = document.getElementById('cxc-main-field');
+      if (television && !internet && !telefonia) {
+        tvField.style.display = "block";
+        cxcMainField.style.display = "none";
+      } else if (television && (internet || telefonia)) {
+        tvField.style.display = "block";
+        cxcMainField.style.display = "block";
+      } else {
+        tvField.style.display = "none";
+        cxcMainField.style.display = "block";
+      }
+    }
+
+    // Escuchar cambios en los checkboxes
+    document.getElementById('internet').addEventListener('change', updateCxcLabel);
+    document.getElementById('telefonia').addEventListener('change', updateCxcLabel);
+    document.getElementById('television').addEventListener('change', updateCxcLabel);
+
+    function calculate() {
+      // Obtener valores del formulario
+      const startDate = new Date(document.getElementById('start-date').value);
+      const endDate = new Date(document.getElementById('end-date').value);
+      const contractDuration = parseInt(document.getElementById('contract-duration').value);
+      const cxcValue = parseFloat(document.getElementById('cxc-value').value) || 0; // Valor de CXC (opcional)
+      const cxcTvValue = parseFloat(document.getElementById('cxc-tv').value) || 0; // Valor de TV (opcional)
+      const internet = document.getElementById('internet').checked;
+      const telefonia = document.getElementById('telefonia').checked;
+      const television = document.getElementById('television').checked;
+
+      // Calcular diferencia en meses
+      let monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+
+      // Ajustar si el día de la fecha de suspensión es menor que el día de contratación
+      if (endDate.getDate() < startDate.getDate()) {
+        monthsDiff--;
+      }
+
+      // Mostrar meses transcurridos
+      document.getElementById('months-diff').value = monthsDiff;
+
+      // Calcular meses faltantes
+      const remainingMonths = contractDuration - monthsDiff;
+
+      // Mostrar meses faltantes
+      document.getElementById('remaining-months').value = remainingMonths;
+
+      // Calcular valor mensual de CXC
+      const monthlyCxc = cxcValue / contractDuration;
+
+      // Calcular valor de salida anticipada de Int y Telf (sin IVA)
+      const earlyTerminationFee = monthlyCxc * remainingMonths;
+
+      // Calcular valor de salida anticipada de Int y Telf con IVA
+      const earlyTerminationFeeWithTax = earlyTerminationFee * 1.15;
+
+      // Calcular valor de salida anticipada por TV (sin IVA ni ICE)
+      const tvFee = (cxcTvValue / contractDuration) * remainingMonths;
+
+      // Calcular valor de salida anticipada con IVA + ICE (15%)
+      const earlyTerminationFeeWithIce = tvFee * 1.15 * 1.15;
+
+      // Mostrar resultados
+      const resultElement = document.getElementById('result');
+      const resultWithTaxElement = document.getElementById('result-with-tax');
+      const resultTvElement = document.getElementById('result-tv');
+      const resultWithIceElement = document.getElementById('result-with-ice');
+
+      // Ocultar todos los resultados primero
+      resultElement.style.display = "none";
+      resultWithTaxElement.style.display = "none";
+      resultTvElement.style.display = "none";
+      resultWithIceElement.style.display = "none";
+
+      if (remainingMonths > 0) {
+        // Mostrar servicios seleccionados
+        let services = [];
+        if (internet && !television) services.push("Int");
+        if (telefonia && !television) services.push("Telf");
+        if (television && internet && telefonia) services.push("Int", "Telf");
+        if (television && internet && !telefonia) services.push("Int");
+        if (television && !internet && telefonia) services.push("Telf");
+
+        if (television && !internet && !telefonia) {
+          resultTvElement.textContent = `Valor de salida anticipada por TV (sin IVA ni ICE): $${tvFee.toFixed(2)}`;
+          resultWithIceElement.textContent = `Valor de salida anticipada con IVA + ICE (15%) de TV: $${earlyTerminationFeeWithIce.toFixed(2)}`;
+          resultTvElement.style.display = "block";
+          resultWithIceElement.style.display = "block";
+        } else {
+          resultElement.textContent = `Valor de salida anticipada de ${services.join(" y ")} (sin IVA): $${earlyTerminationFee.toFixed(2)}`;
+          resultWithTaxElement.textContent = `Valor de salida anticipada de ${services.join(" y ")} con IVA: $${earlyTerminationFeeWithTax.toFixed(2)}`;
+          resultElement.style.display = "block";
+          resultWithTaxElement.style.display = "block";
+
+          if (television && (internet || telefonia)) {
+            resultTvElement.textContent = `Valor de salida anticipada por TV (sin IVA ni ICE): $${tvFee.toFixed(2)}`;
+            resultWithIceElement.textContent = `Valor de salida anticipada con IVA + ICE (15%) de TV: $${earlyTerminationFeeWithIce.toFixed(2)}`;
+            resultTvElement.style.display = "block";
+            resultWithIceElement.style.display = "block";
+          }
+        }
+      } else {
+        resultElement.textContent = "El contrato ya ha finalizado.";
+        resultElement.style.display = "block";
+      }
+    }
+  </script>
+</body>
+</html>
