@@ -239,9 +239,9 @@
       // Calcular diferencia en meses
       let monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
 
-      // Ajustar si el día de la fecha de suspensión es menor que el día de contratación
-      if (endDate.getDate() < startDate.getDate()) {
-        monthsDiff--;
+      // Ajustar si el día de la fecha de suspensión es mayor o igual al día de contratación
+      if (endDate.getDate() >= startDate.getDate()) {
+        monthsDiff++;
       }
 
       // Mostrar meses transcurridos
